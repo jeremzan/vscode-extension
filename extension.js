@@ -1,38 +1,107 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 const vscode = require("vscode");
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+let pomodoroTimer;
+let countdownTimer;
+let workDuration = 25 * 60; // default 25 minutes
+let breakDuration = 5 * 60; // default 5 minutes
+let isWorkInterval = true;
+let statusBarTimer;
 
-/**
- * @param {vscode.ExtensionContext} context
- */
 function activate(context) {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "pomodorotimer" is now active!');
+    console.log('Congratulations, your extension "pomodorotimer" is now active!');
 
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with  registerCommand
-  // The commandId parameter must match the command field in package.json
-  let disposable = vscode.commands.registerCommand(
-    "pomodorotimer.helloWorld",
-    function () {
-      // The code you place here will be executed every time your command is executed
+    statusBarTimer = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    context.subscriptions.push(statusBarTimer);
 
-      // Display a message box to the user
-      vscode.window.showInformationMessage("Tomate Timer from PomodoroTimer!");
-    }
-  );
+    let startCommand = vscode.commands.registerCommand('pomodorotimer.start', startPomodoro);
+    let stopCommand = vscode.commands.registerCommand('pomodorotimer.stop', stopPomodoro);
+    let resetCommand = vscode.commands.registerCommand('pomodorotimer.reset', resetPomodoro);
+    let setWorkDurationCommand = vscode.commands.registerCommand('pomodorotimer.setWorkDuration', setWorkDuration);
+    let setBreakDurationCommand = vscode.commands.registerCommand('pomodorotimer.setBreakDuration', setBreakDuration);
 
-  context.subscriptions.push(disposable);
+    context.subscriptions.push(startCommand, stopCommand, resetCommand, setWorkDurationCommand, setBreakDurationCommand);
 }
 
-// This method is called when your extension is deactivated
-function deactivate() {}
+function updateStatusBarTimer(timeLeft) {
+    let minutes = Math.floor(timeLeft / 60);
+    let seconds = timeLeft % 60;
+    statusBarTimer.text = `Pomodoro: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    statusBarTimer.show();
+}
+
+function startPomodoro() {
+    stopPomodoro(); // Stop existing timer if any
+
+    let intervalDuration = isWorkInterval ? workDuration : breakDuration;
+    let timeLeft = intervalDuration;
+
+    updateStatusBarTimer(timeLeft);
+    
+    countdownTimer = setInterval(() => {
+        timeLeft--;
+        updateStatusBarTimer(timeLeft);
+
+        if (timeLeft <= 0) {
+            clearInterval(countdownTimer);
+            vscode.window.showInformationMessage(isWorkInterval ? 'Time for a break!' : 'Work interval starts now!');
+            isWorkInterval = !isWorkInterval;
+            startPomodoro();
+        }
+    }, 1000);
+
+    vscode.window.showInformationMessage(`Pomodoro ${isWorkInterval ? 'Work' : 'Break'} interval started`);
+}
+
+function stopPomodoro() {
+    if (pomodoroTimer) {
+        clearTimeout(pomodoroTimer);
+        pomodoroTimer = undefined;
+    }
+    if (countdownTimer) {
+        clearInterval(countdownTimer);
+        countdownTimer = undefined;
+    }
+    statusBarTimer.hide();
+    vscode.window.showInformationMessage('Pomodoro Timer stopped');
+}
+
+function resetPomodoro() {
+    stopPomodoro();
+    isWorkInterval = true;
+    vscode.window.showInformationMessage('Pomodoro Timer reset');
+}
+
+function setWorkDuration() {
+    vscode.window.showInputBox({ prompt: 'Enter Work Duration in Minutes' })
+        .then(value => {
+            let num = parseInt(value, 10);
+            if (!isNaN(num) && num > 0) {
+                workDuration = num * 60;
+                vscode.window.showInformationMessage(`Work Duration set to ${num} minutes`);
+            } else {
+                vscode.window.showErrorMessage('Invalid input. Please enter a positive number.');
+            }
+        });
+}
+
+function setBreakDuration() {
+    vscode.window.showInputBox({ prompt: 'Enter Break Duration in Minutes' })
+        .then(value => {
+            let num = parseInt(value, 10);
+            if (!isNaN(num) && num > 0) {
+                breakDuration = num * 60;
+                vscode.window.showInformationMessage(`Break Duration set to ${num} minutes`);
+            } else {
+                vscode.window.showErrorMessage('Invalid input. Please enter a positive number.');
+            }
+        });
+}
+
+function deactivate() {
+    stopPomodoro();
+}
 
 module.exports = {
-  activate,
-  deactivate
+    activate,
+    deactivate
 };

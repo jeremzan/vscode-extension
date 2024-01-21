@@ -12,10 +12,28 @@
   "activationEvents": [],
   "main": "./extension.js",
   "contributes": {
-    "commands": [{
-      "command": "pomodorotimer.helloWorld",
-      "title": "Hello World"
-    }]
+    "commands": [
+      {
+        "command": "pomodorotimer.start",
+        "title": "Start Pomodoro"
+      },
+      {
+        "command": "pomodorotimer.stop",
+        "title": "Stop Pomodoro"
+      },
+      {
+        "command": "pomodorotimer.reset",
+        "title": "Reset Pomodoro"
+      },
+      {
+        "command": "pomodorotimer.setWorkDuration",
+        "title": "Pomodoro - Set Work Duration"
+      },
+      {
+        "command": "pomodorotimer.setBreakDuration",
+        "title": "Pomodoro - Set Break Duration"
+      }
+    ]
   },
   "scripts": {
     "lint": "eslint .",
