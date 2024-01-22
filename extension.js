@@ -67,7 +67,6 @@ function updateStatusBarTimer(timeLeft) {
 }
 
 
-
 function startPomodoro(firstStart = false) {
   // Determine if the timer is already running
   let isRestarting = pomodoroTimer || countdownTimer;
