@@ -32,6 +32,10 @@
       {
         "command": "pomodorotimer.setBreakDuration",
         "title": "Pomodoro - Set Break Duration"
+      },
+      {
+        "command": "pomodorotimer.showTimerUI",
+        "title": "Pomodoro: Show Timer UI"
       }
     ]
   },
