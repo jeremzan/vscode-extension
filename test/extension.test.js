@@ -1,15 +1,17 @@
 const assert = require('assert');
-
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
 const vscode = require('vscode');
-// const myExtension = require('../extension');
+const myExtension = require('../extension');
 
-suite('Extension Test Suite', () => {
-	vscode.window.showInformationMessage('Start all tests.');
+suite('Extension Activation Test Suite', () => {
+    test('Extension should be present', () => {
+        assert.ok(vscode.extensions.getExtension('Best.pomodorotimer'));
+    });
 
-	test('Sample test', () => {
-		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
-	});
+    test('Should activate extension', async () => {
+        const extension = vscode.extensions.getExtension('Best.pomodorotimer');
+        await extension.activate();
+        assert.ok(extension.isActive);
+    });
+
+    // ... test for initialized components
 });
