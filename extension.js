@@ -49,11 +49,11 @@ function activate(context) {
 function updateStatusBarTimer(timeLeft) {
   let minutes = Math.floor(timeLeft / 60);
   let seconds = timeLeft % 60;
-  statusBarTimer.text = `Pomodoro: ${minutes}:${
-    seconds < 10 ? "0" : ""
-  }${seconds}`;
+  let sessionType = isWorkInterval ? 'Work Session' : 'Break Session';
+  statusBarTimer.text = `${sessionType}: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   statusBarTimer.show();
 }
+
 
 function startPomodoro(firstStart = false) {
   // Determine if the timer is already running
