@@ -287,7 +287,7 @@ function getWebviewContent() {
     
             // Update the displayed time and session type
             timerElement.textContent = minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
-            sessionTypeElement.textContent = {message.sessionType || 'Work'} + ' Session';
+            sessionTypeElement.textContent = (message.sessionType || 'Work') + ' Session';
           });
         </script>
       </body>
@@ -303,9 +303,6 @@ function updateWebviewTimer(timeLeft, totalTime, sessionType) {
       });
   }
 }
-
-
-
 
 function deactivate() {
   stopPomodoro();
