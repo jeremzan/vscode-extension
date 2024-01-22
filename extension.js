@@ -80,6 +80,7 @@ function startPomodoro(firstStart = false) {
   let intervalDuration = isWorkInterval ? workDuration : breakDuration;
   let timeLeft = intervalDuration;
 
+  updateWebviewTimer(intervalDuration, intervalDuration, isWorkInterval ? 'Work' : 'Break');
   updateStatusBarTimer(timeLeft);
 
   countdownTimer = setInterval(() => {
@@ -246,7 +247,7 @@ function getWebviewContent() {
           </style>
       </head>
       <body>
-          <div class="session" id="session">Work Session</div>
+          <div class="session" id="sessionType">Work Session</div>
           <div class="clock">
               <svg width="250" height="250">
                   <circle class="bg" r="110" cx="125" cy="125"></circle>
@@ -286,22 +287,19 @@ function getWebviewContent() {
     
             // Update the displayed time and session type
             timerElement.textContent = minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
-            sessionTypeElement.textContent = message.sessionType + ' Session';
+            sessionTypeElement.textContent = {message.sessionType || 'Work'} + ' Session';
           });
         </script>
       </body>
       </html>`;
 }
-
-
-
 // Update the timer in the webview
 function updateWebviewTimer(timeLeft, totalTime, sessionType) {
   if (timerWebviewPanel) {
       timerWebviewPanel.webview.postMessage({
           timeLeft: timeLeft,
           totalTime: totalTime,
-          sessionType: sessionType
+          sessionType: sessionType // This will be either 'Work' or 'Break'
       });
   }
 }
