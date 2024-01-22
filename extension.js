@@ -6,6 +6,7 @@ let workDuration = 45 * 60; // default 45 minutes
 let breakDuration = 15 * 60; // default 15 minutes
 let isWorkInterval = true;
 let statusBarTimer;
+let timerWebviewPanel = null; // Added for webview
 
 function activate(context) {
   console.log('Congratulations, your extension "pomodorotimer" is now active!');
@@ -15,6 +16,13 @@ function activate(context) {
     100
   );
   context.subscriptions.push(statusBarTimer);
+
+  let showTimerUICommand = vscode.commands.registerCommand(
+    "pomodorotimer.showTimerUI",
+    showTimer
+  );
+
+context.subscriptions.push(showTimerUICommand);
 
   let startCommand = vscode.commands.registerCommand(
     "pomodorotimer.start",
@@ -49,10 +57,15 @@ function activate(context) {
 function updateStatusBarTimer(timeLeft) {
   let minutes = Math.floor(timeLeft / 60);
   let seconds = timeLeft % 60;
-  let sessionType = isWorkInterval ? 'Work Session' : 'Break Session';
-  statusBarTimer.text = `${sessionType}: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  let sessionType = isWorkInterval ? 'Work' : 'Break';
+  statusBarTimer.text = `${sessionType} Session: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   statusBarTimer.show();
+
+  // Calculate the total time based on the session type
+  let totalTime = isWorkInterval ? workDuration : breakDuration;
+  updateWebviewTimer(timeLeft, totalTime, sessionType);
 }
+
 
 
 function startPomodoro(firstStart = false) {
@@ -117,7 +130,7 @@ function resetPomodoro() {
 
     // Reset the state and durations to default
     isWorkInterval = true;
-    workDuration = 45 * 60; // Reset to default 25 minutes
+    workDuration = 45 * 60; // Reset to default 45 minutes
     breakDuration = 15 * 60; // Reset to default 5 minutes
 
     startPomodoro(); // Start a new timer without the message
@@ -162,6 +175,139 @@ function setBreakDuration() {
       }
     });
 }
+
+function showTimer() {
+  if (timerWebviewPanel === null) {
+      timerWebviewPanel = vscode.window.createWebviewPanel(
+          'timer', 
+          'Pomodoro Timer', 
+          vscode.ViewColumn.One, 
+          { enableScripts: true }
+      );
+      timerWebviewPanel.webview.html = getWebviewContent();
+      timerWebviewPanel.onDidDispose(() => {
+          timerWebviewPanel = null;
+      });
+  }
+  updateWebviewTimer(statusBarTimer.text); // Initialize with current timer status
+}
+
+function getWebviewContent() {
+  return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Pomodoro Timer</title>
+          <style>
+              body {
+                  display: flex;
+                  flex-direction: column;
+                  justify-content: center;
+                  align-items: center;
+                  height: 100vh;
+                  background-color: #0e1117;
+                  color: #fff;
+                  font-family: 'Arial', sans-serif;
+                  margin: 0;
+                  overflow: hidden;
+              }
+              .session {
+                  font-size: 1.5em;
+                  margin-bottom: 20px;
+              }
+              .clock {
+                  position: relative;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  width: 250px;
+                  height: 250px;
+              }
+              .clock svg {
+                  transform: rotate(-90deg);
+              }
+              .clock circle {
+                  fill: none;
+                  stroke-width: 10;
+                  stroke: #0af;
+                  transition: stroke-dashoffset 0.5s;
+                  stroke-linecap: round;
+              }
+              .clock circle.bg {
+                  stroke: rgba(255, 255, 255, 0.1);
+              }
+              .time {
+                  position: absolute;
+                  font-size: 2.5em;
+                  font-weight: bold;
+              }
+          </style>
+      </head>
+      <body>
+          <div class="session" id="session">Work Session</div>
+          <div class="clock">
+              <svg width="250" height="250">
+                  <circle class="bg" r="110" cx="125" cy="125"></circle>
+                  <circle class="progress" r="110" cx="125" cy="125" stroke-dasharray="691" stroke-dashoffset="691"></circle>
+              </svg>
+              <div id="timer" class="time">00:00</div>
+          </div>
+          <script>
+          const vscode = acquireVsCodeApi();
+          const circumference = 691; // This should match the stroke-dasharray of the circle
+          let initialized = false;
+    
+          window.addEventListener('message', event => {
+            const message = event.data; // The JSON data our extension sent
+            const timerElement = document.getElementById('timer');
+            const sessionTypeElement = document.getElementById('sessionType');
+            const progressCircle = document.querySelector('.progress');
+    
+            if (!initialized) {
+              // Set the progress circle to full circumference when initializing
+              progressCircle.style.strokeDasharray = circumference;
+              progressCircle.style.strokeDashoffset = circumference;
+              initialized = true;
+            }
+    
+            // Extract the time left and total time from the message
+            const totalTime = message.totalTime;
+            const timeLeft = message.timeLeft;
+    
+            // Calculate the strokeDashoffset based on time left
+            const progress = (timeLeft / totalTime) * circumference;
+            progressCircle.style.strokeDashoffset = progress;
+    
+            // Convert timeLeft back into minutes and seconds
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+    
+            // Update the displayed time and session type
+            timerElement.textContent = minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+            sessionTypeElement.textContent = message.sessionType + ' Session';
+          });
+        </script>
+      </body>
+      </html>`;
+}
+
+
+
+// Update the timer in the webview
+function updateWebviewTimer(timeLeft, totalTime, sessionType) {
+  if (timerWebviewPanel) {
+      timerWebviewPanel.webview.postMessage({
+          timeLeft: timeLeft,
+          totalTime: totalTime,
+          sessionType: sessionType
+      });
+  }
+}
+
+
+
 
 function deactivate() {
   stopPomodoro();
